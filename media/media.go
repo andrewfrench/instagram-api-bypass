@@ -3,7 +3,7 @@ package media
 import (
 	"fmt"
 	"request"
-	"parse/common"
+	"common"
 	"encoding/json"
 )
 

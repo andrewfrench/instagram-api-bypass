@@ -3,7 +3,7 @@ package account
 import (
 	"fmt"
 	"request"
-	"parse/common"
+	"common"
 	"encoding/json"
 )
 
