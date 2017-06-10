@@ -2,9 +2,9 @@ package media
 
 import (
 	"fmt"
-	"request"
-	"common"
+	"common/request"
 	"encoding/json"
+	"common/extract"
 )
 
 type Media struct {
@@ -88,7 +88,7 @@ func Get(code string) (*Media, error) {
 }
 
 func parseMedia(input []byte) (*Media, error) {
-	jsonBytes, err := common.ExtractJson(input)
+	jsonBytes, err := extract.ExtractJson(input)
 	if err != nil {
 		return &Media{}, err
 	}

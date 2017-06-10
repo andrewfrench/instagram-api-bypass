@@ -2,9 +2,9 @@ package account
 
 import (
 	"fmt"
-	"request"
-	"common"
+	"common/request"
 	"encoding/json"
+	"common/extract"
 )
 
 type Account struct {
@@ -88,7 +88,7 @@ func Get(username string) (*Account, error) {
 }
 
 func parseAccount(input []byte) (*Account, error) {
-	jsonBytes, err := common.ExtractJson(input)
+	jsonBytes, err := extract.ExtractJson(input)
 	if err != nil {
 		return &Account{}, err
 	}
