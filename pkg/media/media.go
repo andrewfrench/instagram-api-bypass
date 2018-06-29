@@ -2,9 +2,10 @@ package media
 
 import (
 	"fmt"
-	"common/request"
 	"encoding/json"
-	"common/extract"
+
+	"github.com/andrewfrench/instagram-api-bypass/pkg/common/extract"
+	"github.com/andrewfrench/instagram-api-bypass/pkg/common/request"
 )
 
 type Media struct {

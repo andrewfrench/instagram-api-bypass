@@ -1,18 +1,20 @@
 package account
 
 import (
-	"fmt"
-	"common/request"
 	"encoding/json"
-	"common/extract"
+	"fmt"
+
+	"github.com/andrewfrench/instagram-api-bypass/pkg/common/extract"
+	"github.com/andrewfrench/instagram-api-bypass/pkg/common/request"
 )
 
 type Account struct {
-	Id            string        `json:"id"`
+	ID            string        `json:"id"`
 	Username      string        `json:"username"`
 	FullName      string        `json:"full_name"`
+	ExternalURL   string        `json:"external_url"`
 	Biography     string        `json:"biography"`
-	ProfilePicUrl string        `json:"profile_pic_url"`
+	ProfilePicURL string        `json:"profile_pic_url_hd"`
 	Followers     int           `json:"followers"`
 	Following     int           `json:"following"`
 	IsPrivate     bool          `json:"is_private"`
@@ -21,7 +23,7 @@ type Account struct {
 }
 
 type RecentMedia struct {
-	Id               string `json:"id"`
+	ID               string `json:"id"`
 	Code             string `json:"code"`
 	Date             int    `json:"date"`
 	Owner            string `json:"owner"`
@@ -37,48 +39,52 @@ type RecentMedia struct {
 type Response struct {
 	EntryData struct {
 		ProfilePage []struct {
-			User struct {
-				Biography string `json:"biography"`
-				FollowedBy struct {
-					Count int `json:"count"`
-				} `json:"followed_by"`
-				Follows struct {
-					Count int `json:"count"`
-				}
-				FullName string `json:"full_name"`
-				Id string `json:"id"`
-				IsPrivate bool `json:"is_private"`
-				IsVerified bool `json:"is_verified"`
-				Username string `json:"username"`
-				ProfilePicUrl string `json:"profile_pic_url"`
-				Media struct {
-					Nodes []struct {
-						Id string `json:"id"`
-						Code string `json:"code"`
-						Date int `json:"date"`
-						Owner struct {
-							Id string `json:"id"`
-						} `json:"owner"`
-						Caption string `json:"caption"`
-						Comments struct {
-							Count int `json:"count"`
-						} `json:"comments"`
-						Likes struct {
-							Count int `json:"count"`
-						} `json:"likes"`
-						IsVideo bool `json:"is_video"`
-						CommentsDisabled bool `json:"comments_disabled"`
-						ThumbnailSrc string `json:"thumbnail_src"`
-						DisplaySrc string `json:"display_src"`
-					} `json:"nodes"`
-				} `json:"media"`
-			} `json:"user"`
+			GraphQL struct {
+				User struct {
+					Biography      string `json:"biography"`
+					ExternalURL    string `json:"external_url"`
+					EdgeFollowedBy struct {
+						Count int `json:"count"`
+					} `json:"edge_followed_by"`
+					EdgeFollow struct {
+						Count int `json:"count"`
+					} `json:"edge_follow"`
+					FullName      string `json:"full_name"`
+					ID            string `json:"id"`
+					IsPrivate     bool   `json:"is_private"`
+					IsVerified    bool   `json:"is_verified"`
+					Username      string `json:"username"`
+					ProfilePicURL string `json:"profile_pic_url"`
+					CountryBlock  bool   `json:"country_block"`
+					Media         struct {
+						Nodes []struct {
+							ID    string `json:"id"`
+							Code  string `json:"code"`
+							Date  int    `json:"date"`
+							Owner struct {
+								ID string `json:"id"`
+							} `json:"owner"`
+							Caption  string `json:"caption"`
+							Comments struct {
+								Count int `json:"count"`
+							} `json:"comments"`
+							Likes struct {
+								Count int `json:"count"`
+							} `json:"likes"`
+							IsVideo          bool   `json:"is_video"`
+							CommentsDisabled bool   `json:"comments_disabled"`
+							ThumbnailSrc     string `json:"thumbnail_src"`
+							DisplaySrc       string `json:"display_src"`
+						} `json:"nodes"`
+					} `json:"media"`
+				} `json:"user"`
+			} `json:"graphql"`
 		} `json:"ProfilePage"`
 	} `json:"entry_data"`
 }
 
 func Get(username string) (*Account, error) {
-	url := fmt.Sprintf("http://www.instagram.com/%s/", username)
+	url := fmt.Sprintf("https://www.instagram.com/%s/", username)
 	response, err := request.Get(url)
 	if err != nil {
 		return &Account{}, err
@@ -106,15 +112,15 @@ func parseAccount(input []byte) (*Account, error) {
 }
 
 func responseToAccount(resp *Response) *Account {
-	u := resp.EntryData.ProfilePage[0].User
+	u := resp.EntryData.ProfilePage[0].GraphQL.User
 	return &Account{
-		Id:            u.Id,
+		ID:            u.ID,
 		Username:      u.Username,
 		FullName:      u.FullName,
 		Biography:     u.Biography,
-		ProfilePicUrl: u.ProfilePicUrl,
-		Followers:     u.FollowedBy.Count,
-		Following:     u.Follows.Count,
+		ProfilePicURL: u.ProfilePicURL,
+		Followers:     u.EdgeFollowedBy.Count,
+		Following:     u.EdgeFollow.Count,
 		IsPrivate:     u.IsPrivate,
 		IsVerified:    u.IsVerified,
 	}
@@ -122,13 +128,13 @@ func responseToAccount(resp *Response) *Account {
 
 func responseToRecentMediaSlice(resp *Response) []RecentMedia {
 	recentMedia := []RecentMedia{}
-	for _, m := range resp.EntryData.ProfilePage[0].User.Media.Nodes {
+	for _, m := range resp.EntryData.ProfilePage[0].GraphQL.User.Media.Nodes {
 		media := RecentMedia{
-			Id:               m.Id,
+			ID:               m.ID,
 			Code:             m.Code,
 			Date:             m.Date,
 			Caption:          m.Caption,
-			Owner:            m.Owner.Id,
+			Owner:            m.Owner.ID,
 			Comments:         m.Comments.Count,
 			Likes:            m.Likes.Count,
 			IsVideo:          m.IsVideo,
