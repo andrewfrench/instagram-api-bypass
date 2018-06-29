@@ -19,7 +19,7 @@ var mediaCmd = &cobra.Command{
 			return
 		}
 
-		mediaShortcode := args[1]
+		mediaShortcode := args[0]
 		med, err := media.Get(mediaShortcode)
 		if err != nil {
 			fmt.Printf("Unable to get media [%s]: %v\n", mediaShortcode, err)
