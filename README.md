@@ -8,6 +8,8 @@ This repository parses Instagram's public response to GET requests, providing an
 ./build.sh
 ``` 
 
+The `iab` binary will now be in your $GOBIN (`~/go/bin` by default).  If you haven't already, add this to your $PATH to be able to use `iab` seamlessly.
+
 ## Use
 ### Get user account information
 
