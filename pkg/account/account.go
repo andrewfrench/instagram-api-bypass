@@ -23,17 +23,24 @@ type Account struct {
 }
 
 type RecentMedia struct {
-	ID               string `json:"id"`
-	Code             string `json:"code"`
-	Date             int    `json:"date"`
-	Owner            string `json:"owner"`
-	Caption          string `json:"caption"`
-	Comments         int    `json:"comments"`
-	Likes            int    `json:"likes"`
-	IsVideo          bool   `json:"is_video"`
-	CommentsDisabled bool   `json:"comments_disabled"`
-	ThumbnalSrc      string `json:"thumbnail_src"`
-	DisplaySrc       string `json:"display_src"`
+	ID                 string              `json:"id"`
+	Shortcode          string              `json:"shortcode"`
+	TakenAtTimestamp   int                 `json:"taken_at_timestamp"`
+	Owner              string              `json:"owner"`
+	Caption            string              `json:"caption"`
+	CommentCount       int                 `json:"comment_count"`
+	LikeCount          int                 `json:"like_count"`
+	IsVideo            bool                `json:"is_video"`
+	CommentsDisabled   bool                `json:"comments_disabled"`
+	ThumbnailSrc       string              `json:"thumbnail_src"`
+	ThumbnailResources []ThumbnailResource `json:"thumbnail_resources"`
+	DisplayURL         string              `json:"display_url"`
+}
+
+type ThumbnailResource struct {
+	Src    string `json:"src"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
 }
 
 type Response struct {
@@ -57,26 +64,43 @@ type Response struct {
 					ProfilePicURL string `json:"profile_pic_url"`
 					CountryBlock  bool   `json:"country_block"`
 					Media         struct {
-						Nodes []struct {
-							ID    string `json:"id"`
-							Code  string `json:"code"`
-							Date  int    `json:"date"`
-							Owner struct {
-								ID string `json:"id"`
-							} `json:"owner"`
-							Caption  string `json:"caption"`
-							Comments struct {
-								Count int `json:"count"`
-							} `json:"comments"`
-							Likes struct {
-								Count int `json:"count"`
-							} `json:"likes"`
-							IsVideo          bool   `json:"is_video"`
-							CommentsDisabled bool   `json:"comments_disabled"`
-							ThumbnailSrc     string `json:"thumbnail_src"`
-							DisplaySrc       string `json:"display_src"`
-						} `json:"nodes"`
-					} `json:"media"`
+						Edges []struct {
+							Node struct {
+								ID               string `json:"id"`
+								Shortcode        string `json:"shortcode"`
+								TakenAtTimestamp int    `json:"taken_at_timestamp"`
+								Dimensions       struct {
+									Height int `json:"height"`
+									Width  int `json:"width"`
+								} `json:"dimensions"`
+								Owner struct {
+									ID string `json:"id"`
+								} `json:"owner"`
+								EdgeMediaToCaption struct {
+									Edges []struct {
+										Node struct {
+											Caption string `json:"text"`
+										} `json:"node"`
+									} `json:"edges"`
+								} `json:"edge_media_to_caption"`
+								Comments struct {
+									Count int `json:"count"`
+								} `json:"edge_media_to_comment"`
+								Likes struct {
+									Count int `json:"count"`
+								} `json:"edge_liked_by"`
+								IsVideo            bool   `json:"is_video"`
+								CommentsDisabled   bool   `json:"comments_disabled"`
+								ThumbnailSrc       string `json:"thumbnail_src"`
+								ThumbnailResources []struct {
+									Src    string `json:"src"`
+									Width  int    `json:"config_width"`
+									Height int    `json:"config_height"`
+								} `json:"thumbnail_resources"`
+								DisplayURL string `json:"display_url"`
+							} `json:"node"`
+						} `json:"edges"`
+					} `json:"edge_owner_to_timeline_media"`
 				} `json:"user"`
 			} `json:"graphql"`
 		} `json:"ProfilePage"`
@@ -127,20 +151,33 @@ func responseToAccount(resp *Response) *Account {
 }
 
 func responseToRecentMediaSlice(resp *Response) []RecentMedia {
-	recentMedia := []RecentMedia{}
-	for _, m := range resp.EntryData.ProfilePage[0].GraphQL.User.Media.Nodes {
+	var recentMedia []RecentMedia
+	for _, m := range resp.EntryData.ProfilePage[0].GraphQL.User.Media.Edges {
 		media := RecentMedia{
-			ID:               m.ID,
-			Code:             m.Code,
-			Date:             m.Date,
-			Caption:          m.Caption,
-			Owner:            m.Owner.ID,
-			Comments:         m.Comments.Count,
-			Likes:            m.Likes.Count,
-			IsVideo:          m.IsVideo,
-			CommentsDisabled: m.CommentsDisabled,
-			ThumbnalSrc:      m.ThumbnailSrc,
-			DisplaySrc:       m.DisplaySrc,
+			ID:               m.Node.ID,
+			Shortcode:        m.Node.Shortcode,
+			TakenAtTimestamp: m.Node.TakenAtTimestamp,
+			Owner:            m.Node.Owner.ID,
+			CommentCount:     m.Node.Comments.Count,
+			LikeCount:        m.Node.Likes.Count,
+			IsVideo:          m.Node.IsVideo,
+			CommentsDisabled: m.Node.CommentsDisabled,
+			ThumbnailSrc:     m.Node.ThumbnailSrc,
+			DisplayURL:       m.Node.DisplayURL,
+		}
+
+		if len(m.Node.EdgeMediaToCaption.Edges) > 0 {
+			media.Caption = m.Node.EdgeMediaToCaption.Edges[0].Node.Caption
+		}
+
+		for _, tr := range m.Node.ThumbnailResources {
+			resource := ThumbnailResource{
+				Src:    tr.Src,
+				Width:  tr.Width,
+				Height: tr.Height,
+			}
+
+			media.ThumbnailResources = append(media.ThumbnailResources, resource)
 		}
 
 		recentMedia = append(recentMedia, media)
